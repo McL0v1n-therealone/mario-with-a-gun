@@ -9,6 +9,7 @@
 #include "print.h"
 #include "rendering_graph_node.h"
 #include "shadow.h"
+#include "weapons.h"
 #include "sm64.h"
 
 /**
@@ -587,6 +588,7 @@ static void geo_process_animated_part(struct GraphNodeAnimatedPart *node) {
         rotation[1] = gCurrAnimData[retrieve_animation_index(gCurrAnimFrame, &gCurrAnimAttribute)];
         rotation[2] = gCurrAnimData[retrieve_animation_index(gCurrAnimFrame, &gCurrAnimAttribute)];
     }
+    weapon_apply_bone_override(rotation); // aiming pose for Mario's gun arm (src/game/weapons.c)
     mtxf_rotate_xyz_and_translate(matrix, translation, rotation);
     mtxf_mul(gMatStack[gMatStackIndex + 1], matrix, gMatStack[gMatStackIndex]);
     gMatStackIndex++;

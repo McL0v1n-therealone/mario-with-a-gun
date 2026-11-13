@@ -9,6 +9,7 @@
 #include "print.h"
 #include "ingame_menu.h"
 #include "hud.h"
+#include "weapons.h"
 #include "segment2.h"
 #include "area.h"
 #include "save_file.h"
@@ -456,6 +457,7 @@ void render_hud(void) {
         if (hudDisplayFlags & HUD_DISPLAY_FLAG_CAMERA_AND_POWER) {
             render_hud_power_meter();
             render_hud_camera_status();
+            weapon_render_hud();
         }
 
         if (hudDisplayFlags & HUD_DISPLAY_FLAG_TIMER) {

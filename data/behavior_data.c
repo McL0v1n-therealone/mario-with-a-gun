@@ -6,6 +6,7 @@
 #include "game/object_list_processor.h"
 #include "game/interaction.h"
 #include "game/behavior_actions.h"
+#include "game/weapons.h"
 #include "game/mario_actions_cutscene.h"
 #include "game/mario_misc.h"
 #include "game/object_helpers.h"
@@ -6108,3 +6109,12 @@ const BehaviorScript bhvIntroScene[] = {
 };
 
 
+
+// Projectile fired by Mario's weapons (see src/game/weapons.c)
+const BehaviorScript bhvWeaponShot[] = {
+    BEGIN(OBJ_LIST_DEFAULT),
+    OR_INT(oFlags, OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE),
+    BEGIN_LOOP(),
+        CALL_NATIVE(bhv_weapon_shot_loop),
+    END_LOOP(),
+};

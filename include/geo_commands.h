@@ -8,6 +8,7 @@
 #include "game/behavior_actions.h"
 #include "game/segment2.h"
 #include "game/mario_misc.h"
+#include "game/weapons.h"
 #include "game/mario_actions_cutscene.h"
 
 // sky background params
