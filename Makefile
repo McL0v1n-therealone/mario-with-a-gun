@@ -7,6 +7,7 @@ default: all
 
 # Preprocessor definitions
 DEFINES :=
+DEFINES += USE_EXT_RAM=1  # use the 8MB Expansion Pak memory layout (vanilla 4MB pool is too small for the added models)
 
 #==============================================================================#
 # Build Options                                                                #
