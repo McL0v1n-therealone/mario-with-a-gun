@@ -20,6 +20,7 @@ enum WeaponId {
     WEAPON_RAILGUN,
     WEAPON_DOUBLE_BARREL,
     WEAPON_PLASMA,
+    WEAPON_M4A1,
     WEAPON_COUNT
 };
 
@@ -28,6 +29,9 @@ void weapon_render_hud(void);
 void bhv_weapon_shot_loop(void);
 void bhv_weapon_explosion_loop(void);
 void bhv_weapon_beam_loop(void);
+
+// Blow an enemy apart from outside the weapon code (e.g. stomped troopers); counts as a kill.
+void weapon_kill_object(struct Object *obj);
 
 // geo layout callbacks (actors/mario/weapons_geo.inc.c)
 Gfx *geo_switch_weapon(s32 callContext, struct GraphNode *node, UNUSED void *context);

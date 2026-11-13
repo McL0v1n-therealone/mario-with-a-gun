@@ -243,6 +243,8 @@ extern const BehaviorScript bhvInSunkenShip2[];
 extern const BehaviorScript bhvMistParticleSpawner[];
 extern const BehaviorScript bhvWhitePuff1[];
 extern const BehaviorScript bhvWeaponShot[];
+extern const BehaviorScript bhvDesertTrooper[];
+extern const BehaviorScript bhvEnemyBullet[];
 extern const BehaviorScript bhvWeaponFlame[];
 extern const BehaviorScript bhvWeaponExplosion[];
 extern const BehaviorScript bhvWeaponBeam[];

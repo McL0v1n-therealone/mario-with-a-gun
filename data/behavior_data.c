@@ -8,6 +8,7 @@
 #include "game/behavior_actions.h"
 #include "game/weapons.h"
 #include "game/gore.h"
+#include "game/trooper.h"
 #include "game/mario_actions_cutscene.h"
 #include "game/mario_misc.h"
 #include "game/object_helpers.h"
@@ -6173,5 +6174,26 @@ const BehaviorScript bhvWeaponBeam[] = {
     OR_INT(oFlags, OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE),
     BEGIN_LOOP(),
         CALL_NATIVE(bhv_weapon_beam_loop),
+    END_LOOP(),
+};
+
+// Outpost enemies (see src/game/trooper.c)
+const BehaviorScript bhvDesertTrooper[] = {
+    BEGIN(OBJ_LIST_GENACTOR),
+    OR_INT(oFlags, (OBJ_FLAG_COMPUTE_ANGLE_TO_MARIO | OBJ_FLAG_COMPUTE_DIST_TO_MARIO | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE)),
+    DROP_TO_FLOOR(),
+    SET_HOME(),
+    CALL_NATIVE(bhv_trooper_init),
+    BEGIN_LOOP(),
+        CALL_NATIVE(bhv_trooper_loop),
+    END_LOOP(),
+};
+
+const BehaviorScript bhvEnemyBullet[] = {
+    BEGIN(OBJ_LIST_GENACTOR),
+    OR_INT(oFlags, OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE),
+    SET_INT(oIntangibleTimer, 0),
+    BEGIN_LOOP(),
+        CALL_NATIVE(bhv_enemy_bullet_loop),
     END_LOOP(),
 };

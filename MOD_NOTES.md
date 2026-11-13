@@ -17,6 +17,9 @@ X / N64 L = fire (hold for automatic weapons), A / D = D-pad left/right = switch
 ## Features
 - 14 weapons: light gun, pistol, magnum, shotgun, SMG, rifle, minigun (spin-up), rocket launcher, grenade launcher,
   flamethrower, sniper, railgun, double barrel, plasma rifle; explosives do splash damage with screen shake
+- M4A1-style carbine (weapon 15)
+- Outpost: original desert defuse-style map (warp pipe next to Mario's start in Castle Grounds) with
+  rifle-armed desert troopers (original enemy: patrol, line of sight, strafing, 3-round bursts)
 - Kill counter, multi-kill announcer (DOUBLE KILL ... GODLIKE), kills heal a quarter wedge
 - Recoil, muzzle flash, slide/pump/cylinder animations, weapon draw animation, HUD weapon name
 - Aiming pose: right arm raises the gun when firing (renderer bone override)
@@ -40,6 +43,9 @@ X / N64 L = fire (hold for automatic weapons), A / D = D-pad left/right = switch
 | Bone override hook | `src/game/rendering_graph_node.c` |
 | Damage rules, bosses, kills | `src/game/weapons.c` (`weapon_damage`, `weapon_kill`) |
 | Blood & gibs | `src/game/gore.c`, `actors/mario/gen_gore.py` |
+| Outpost map (generator + level files) | `levels/outpost/gen_outpost.py`, `levels/outpost/` |
+| Desert trooper AI + enemy bullets | `src/game/trooper.c` |
+| Trooper / M4A1 models | `actors/mario/gen_weapons.py` |
 | Intro skip | `src/game/level_update.c` |
 | Weapon HUD label | `src/game/hud.c` |
 | Model IDs / loading / projectile behavior | `include/model_ids.h`, `levels/scripts.c`, `data/behavior_data.c` |

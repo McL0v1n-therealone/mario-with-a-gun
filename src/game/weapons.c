@@ -90,6 +90,7 @@ static const struct WeaponInfo sWeapons[WEAPON_COUNT] = {
     { "RAILGUN",        0,   1,  0,     45, 420.0f, 12,  99,    PROJ_RAIL,    12, 0.0f,   SOUND_OBJ_MRI_SHOOT,            16, 36.0f, 0x1400, PART_NONE,   0,  0,  0.0f,    1.4f, 362.0f },
     { "DOUBLE BARREL",  0,   10, 0x330, 34, 120.0f, 9,   0,     PROJ_BULLET,  1,  0.0f,   SOUND_OBJ_CANNON2,              16, 40.0f, 0x1800, PART_BREAK,  10, 18, 0x1800,  2.2f, 402.0f },
     { "PLASMA",         1,   1,  0x100, 6,  120.0f, 30,  0,     PROJ_PLASMA,  2,  140.0f, SOUND_OBJ_SNUFIT_SHOOT,         4,  8.0f,  0x300,  PART_NONE,   0,  0,  0.0f,    1.0f, 246.0f },
+    { "M4A1",           1,   1,  0x90,  4,  190.0f, 34,  1,     PROJ_BULLET,  2,  0.0f,   SOUND_GENERAL_RACE_GUN_SHOT,    4,  12.0f, 0x380,  PART_SLIDE,  0,  4,  10.0f,   1.0f, 376.0f },
 };
 
 static s32 sWeapon = WEAPON_PISTOL;
@@ -360,7 +361,7 @@ void weapon_render_hud(void) {
 static s32 weapon_is_protected(struct Object *obj) {
     static const BehaviorScript *const protectedBhvs[] = {
         bhvMips, bhvBowserTailAnchor, bhvSmallPenguin, bhvUkiki, bhvUnagi, bhvBobombBuddy,
-        bhvBobombBuddyOpensCannon, bhvYoshi, bhvTuxiesMother, bhvHoot, bhvChainChompGate,
+        bhvBobombBuddyOpensCannon, bhvYoshi, bhvTuxiesMother, bhvHoot, bhvChainChompGate, bhvEnemyBullet,
     };
     s32 i;
 
@@ -601,6 +602,12 @@ static void weapon_kill(struct Object *t, struct Object *shot) {
     }
     obj_mark_for_deletion(t);
     weapon_register_kill();
+}
+
+void weapon_kill_object(struct Object *obj) {
+    if (obj->activeFlags & ACTIVE_FLAG_ACTIVE) {
+        weapon_kill(obj, obj);
+    }
 }
 
 // Apply one bullet hit. Bosses and enemies with special defeat logic use their own death

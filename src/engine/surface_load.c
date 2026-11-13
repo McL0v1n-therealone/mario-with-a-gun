@@ -44,7 +44,7 @@ static struct SurfaceNode *alloc_surface_node(void) {
 
     node->next = NULL;
 
-    if (gSurfaceNodesAllocated >= 7000) {
+    if (gSurfaceNodesAllocated >= 12000) {
         CN_DEBUG_PRINTF((" mcMakeBGCheckList OVERFLOW\n"));
     }
 
@@ -519,8 +519,8 @@ static void load_environmental_regions(TerrainData **data) {
  * Allocate some of the main pool for surfaces (2300 surf) and for surface nodes (7000 nodes).
  */
 void alloc_surface_pools(void) {
-    sSurfacePoolSize = 2300;
-    sSurfaceNodePool = main_pool_alloc(7000 * sizeof(struct SurfaceNode), MEMORY_POOL_LEFT);
+    sSurfacePoolSize = 4000; // raised for the Outpost map (8MB memory layout)
+    sSurfaceNodePool = main_pool_alloc(12000 * sizeof(struct SurfaceNode), MEMORY_POOL_LEFT);
     sSurfacePool = main_pool_alloc(sSurfacePoolSize * sizeof(struct Surface), MEMORY_POOL_LEFT);
 
     gCCMEnteredSlide = 0;

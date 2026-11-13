@@ -76,6 +76,7 @@ const LevelScript level_main_scripts_entry[] = {
     LOAD_MODEL_FROM_GEO(MODEL_RAIL_BEAM,               rail_beam_geo),
     LOAD_MODEL_FROM_GEO(MODEL_ROCKET_PROJECTILE,       rocket_projectile_geo),
     LOAD_MODEL_FROM_GEO(MODEL_GRENADE_PROJECTILE,      grenade_projectile_geo),
+    LOAD_MODEL_FROM_GEO(MODEL_DESERT_TROOPER,          desert_trooper_geo),
     LOAD_MODEL_FROM_GEO(MODEL_SMOKE,                   smoke_geo),
     LOAD_MODEL_FROM_GEO(MODEL_SPARKLES,                sparkles_geo),
     LOAD_MODEL_FROM_GEO(MODEL_BUBBLE,                  bubble_geo),

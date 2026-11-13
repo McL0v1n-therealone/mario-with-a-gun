@@ -568,6 +568,7 @@
 #define MODEL_RAIL_BEAM                   0xF7        // rail_beam_geo
 #define MODEL_ROCKET_PROJECTILE           0xF8        // rocket_projectile_geo
 #define MODEL_GRENADE_PROJECTILE          0xF9        // grenade_projectile_geo
+#define MODEL_DESERT_TROOPER              0xFA        // desert_trooper_geo - Outpost enemy
 
 // Menu Models (overwrites Level Geometry IDs)
 #define MODEL_MAIN_MENU_MARIO_SAVE_BUTTON         MODEL_LEVEL_GEOMETRY_03   // main_menu_geo_0001D0

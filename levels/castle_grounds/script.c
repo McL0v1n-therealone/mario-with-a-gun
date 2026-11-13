@@ -118,6 +118,9 @@ const LevelScript level_castle_grounds_entry[] = {
     LOAD_MODEL_FROM_GEO(MODEL_CASTLE_GROUNDS_CANNON_GRILL, castle_grounds_geo_000724),
 
     AREA(/*index*/ 1, castle_grounds_geo_00073C),
+        // warp pipe to the Outpost map (next to where Mario starts)
+        OBJECT(/*model*/ MODEL_CASTLE_GROUNDS_WARP_PIPE, /*pos*/ -800, 260, 4250, /*angle*/ 0, 0, 0, /*bhvParam*/ BPARAM2(WARP_NODE_20), /*bhv*/ bhvWarpPipe),
+        WARP_NODE(/*id*/ WARP_NODE_20, /*destLevel*/ LEVEL_OUTPOST, /*destArea*/ 1, /*destNode*/ WARP_NODE_0A, /*flags*/ WARP_NO_CHECKPOINT),
         WARP_NODE(/*id*/ WARP_NODE_DEATH, /*destLevel*/ LEVEL_CASTLE_GROUNDS, /*destArea*/ 1, /*destNode*/ WARP_NODE_03, /*flags*/ WARP_NO_CHECKPOINT),
         JUMP_LINK(script_func_local_1),
         JUMP_LINK(script_func_local_2),

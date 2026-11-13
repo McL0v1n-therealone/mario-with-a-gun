@@ -352,6 +352,33 @@ W.append(dict(name='plasma', body=[
     grip((30, -28, 0), (15, 26, 11), -18, 'polymer'),
 ] + trigger_group(62, 'purple', 'steel', depth=22), part=None, muzzle=(246, 20, 0), flash=1))
 
+
+# 14: M4A1-style carbine - flat-top upper, quad-rail handguard, collapsible stock, 30-round mag
+def m4_parts():
+    return [
+        ('polymer',  box((75, 27, 0), (75, 13, 11))),               # upper receiver
+        ('polymer',  box((70, 6, 0), (50, 8, 10))),                 # lower receiver
+        ('gunmetal', box((75, 43, 0), (75, 3, 7))),                 # top rail
+        ('black',    box((60, 27, 11.2), (16, 6, 0.6))),            # ejection port
+        ('black',    prism(150, 288, 26, 0, 15, 8, smooth=False)),  # quad-rail handguard
+        ('gunmetal', box((219, 43, 0), (69, 3, 6))),                # handguard top rail
+        ('steel',    prism(288, 352, 26, 0, 6, 10)),                # barrel
+        ('black',    prism(352, 374, 26, 0, 8, 6, smooth=False)),   # flash hider
+        ('black',    box((276, 50, 0), (5, 14, 3))),                # front sight post
+        ('black',    box((276, 36, 0), (8, 4, 6))),                 # front sight base
+        ('black',    box((16, 54, 0), (7, 8, 5))),                  # rear flip sight
+        ('black',    box((92, -36, 0), (12, 30, 10), 8)),           # magazine
+        ('black',    box((104, -72, 0), (12, 10, 10), 18)),         # magazine curve
+        grip((30, -28, 0), (15, 26, 11), -22, 'polymer'),
+        ('black',    prism(-110, 0, 26, 0, 9, 10)),                 # buffer tube
+        ('polymer',  box((-112, 22, 0), (34, 18, 12))),             # collapsible stock
+        ('rubber',   box((-149, 22, 0), (4, 20, 12.5))),            # butt pad
+    ] + trigger_group(62, 'polymer', 'steel')
+W.append(dict(name='m4a1', body=m4_parts(),
+    part=dict(pivot=(-4, 40, 0), geom=[
+        ('gunmetal', box((0, 0, 0), (10, 3, 8))),                   # charging handle
+    ]), muzzle=(376, 26, 0), flash=1))
+
 # ------------------------------------------------------------------ emit helpers
 def nb(v): return int(round(max(-1, min(1, v)) * 127)) & 0xFF
 
@@ -444,14 +471,19 @@ v, t = diamond(40, 9);  unlit_dl("zapper_shot_dl", v, t, (255, 245, 120))   # li
 v, t = diamond(34, 12); unlit_dl("plasma_bolt_dl", v, t, (120, 255, 140))   # plasma bolt
 v, t = diamond(60, 5);  unlit_dl("rail_beam_dl", v, t, (110, 240, 255))     # railgun beam segment
 
-def to_object_space(tris):
+def to_object_space(tris, scale=1.0, offset=(0, 0, 0)):
     # authored along +X; swap X and Z so it points along the object's forward axis (+Z)
-    return fix_winding([[((p[2], p[1], p[0]), (n[2], n[1], n[0])) for p, n in t] for t in tris])
+    return fix_winding([[(((p[2]) * scale + offset[0], p[1] * scale + offset[1], p[0] * scale + offset[2]),
+                           (n[2], n[1], n[0])) for p, n in t] for t in tris])
 
-def emit_object_model(dlname, parts):
+def emit_object_model(dlname, parts, scale=1.0, offset=(0, 0, 0), swap=True):
     groups = {}
     for color, tris in parts:
-        groups.setdefault(color, []).extend(to_object_space(tris))
+        if swap:
+            tris = to_object_space(tris, scale, offset)
+        else:
+            tris = fix_winding([[((p[0] * scale + offset[0], p[1] * scale + offset[1], p[2] * scale + offset[2]), n) for p, n in t] for t in tris])
+        groups.setdefault(color, []).extend(tris)
     body = ["    gsDPPipeSync(),", "    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF),",
             "    gsDPSetCombineMode(G_CC_SHADE, G_CC_SHADE),"]
     for color, tris in groups.items():
@@ -492,6 +524,45 @@ for plane in ('y', 'z'):
     ft += [(base + 0, base + 2, base + 4), (base + 0, base + 4, base + 1), (base + 0, base + 1, base + 5),
            (base + 0, base + 5, base + 3)]
 unlit_dl("mario_weapon_flash", fv, ft, (255, 210, 90))
+
+
+# ------------------------------------------------------------------ desert trooper (original enemy design)
+COLORS_T = {'khaki': (0xB4, 0x9C, 0x6C), 'armor': (0x6E, 0x6A, 0x48), 'mask': (0x34, 0x32, 0x30),
+            'boot': (0x3A, 0x2A, 0x1C), 'visor': (0xFF, 0x30, 0x20), 'glove': (0x2A, 0x2A, 0x2A)}
+for c, (r, g, b) in COLORS_T.items():
+    ar, ag, ab = (r, g, b) if c == 'visor' else (r // 2, g // 2, b // 2)
+    out.append(f"static const Lights1 weapon_{c}_lights = gdSPDefLights1(0x{ar:02x}, 0x{ag:02x}, 0x{ab:02x}, 0x{r:02x}, 0x{g:02x}, 0x{b:02x}, 0x28, 0x28, 0x28);\n")
+
+def ybox(center, half):  # plain axis box in object space
+    return box(center, half)
+
+TROOPER_RIFLE_SCALE = 0.33
+TROOPER_RIFLE_POS = (-14, 112, 34)  # grip position in the trooper's hands
+emit_object_model("trooper_body_dl", [
+    ('khaki', ybox((0, 112, 0), (26, 30, 15))),          # torso
+    ('armor', ybox((0, 118, 1), (29, 22, 19))),          # plate carrier
+    ('armor', ybox((-17, 124, 20), (6, 9, 2))),          # mag pouches
+    ('armor', ybox((0, 124, 20), (6, 9, 2))),
+    ('armor', ybox((17, 124, 20), (6, 9, 2))),
+    ('boot',  ybox((0, 84, 0), (27, 4, 16))),            # belt
+    ('mask',  ybox((0, 156, 2), (15, 15, 15))),          # balaclava head
+    ('armor', ybox((0, 173, 1), (19, 7, 20))),           # helmet
+    ('armor', ybox((0, 167, 3), (21, 3, 22))),           # helmet rim
+    ('visor', ybox((0, 157, 17), (12, 4, 1.5))),         # glowing visor
+    ('khaki', ybox((-34, 126, 6), (8, 14, 9))),          # right upper arm
+    ('khaki', ybox((34, 126, 6), (8, 14, 9))),           # left upper arm
+    ('khaki', ybox((-24, 112, 26), (7, 7, 16))),         # right forearm (to grip)
+    ('khaki', ybox((18, 116, 38), (7, 7, 24))),          # left forearm (to handguard)
+    ('glove', ybox((-14, 110, 40), (8, 8, 8))),          # right hand
+    ('glove', ybox((6, 114, 64), (8, 8, 8))),            # left hand
+], swap=False)
+emit_object_model("trooper_rifle_dl", m4_parts(), scale=TROOPER_RIFLE_SCALE,
+                  offset=(TROOPER_RIFLE_POS[0], TROOPER_RIFLE_POS[1], TROOPER_RIFLE_POS[2]))
+emit_object_model("trooper_leg_dl", [
+    ('khaki', ybox((0, -40, 0), (10, 40, 11))),          # leg (hangs from the hip pivot)
+    ('boot',  ybox((0, -76, 5), (11, 7, 17))),           # boot
+], swap=False)
+TROOPER_MUZZLE = (TROOPER_RIFLE_POS[0], TROOPER_RIFLE_POS[1] + 26 * TROOPER_RIFLE_SCALE, TROOPER_RIFLE_POS[2] + 376 * TROOPER_RIFLE_SCALE)
 
 open(os.path.join(HERE, 'weapons.inc.c'), 'w').write("\n".join(out))
 
@@ -543,6 +614,43 @@ for name, dl in (('zapper_shot_geo', 'zapper_shot_dl'), ('bullet_tracer_geo', 'b
     geo += [f"const GeoLayout {name}[] = {{", "    GEO_CULLING_RADIUS(100),", "    GEO_OPEN_NODE(),",
             f"        GEO_DISPLAY_LIST(LAYER_OPAQUE, {dl}),", "    GEO_CLOSE_NODE(),", "    GEO_END(),", "};\n"]
 
+mx, my, mz = (int(round(v)) for v in TROOPER_MUZZLE)
+geo += ["const GeoLayout desert_trooper_geo[] = {",
+        "    GEO_SHADOW(SHADOW_CIRCLE_4_VERTS, 0x9B, 90),",
+        "    GEO_OPEN_NODE(),",
+        "        GEO_ASM(0, geo_trooper_body),",
+        "        GEO_TRANSLATE_ROTATE(0, 0, 0, 0, 0, 0, 0),",
+        "        GEO_OPEN_NODE(),",
+        "            GEO_DISPLAY_LIST(LAYER_OPAQUE, trooper_body_dl),",
+        "            GEO_DISPLAY_LIST(LAYER_OPAQUE, trooper_rifle_dl),",
+        "            GEO_TRANSLATE_ROTATE(0, 14, 82, 0, 0, 0, 0),",
+        "            GEO_OPEN_NODE(),",
+        "                GEO_ASM(1, geo_trooper_leg),",
+        "                GEO_TRANSLATE_ROTATE(0, 0, 0, 0, 0, 0, 0),",
+        "                GEO_OPEN_NODE(),",
+        "                    GEO_DISPLAY_LIST(LAYER_OPAQUE, trooper_leg_dl),",
+        "                GEO_CLOSE_NODE(),",
+        "            GEO_CLOSE_NODE(),",
+        "            GEO_TRANSLATE_ROTATE(0, -14, 82, 0, 0, 0, 0),",
+        "            GEO_OPEN_NODE(),",
+        "                GEO_ASM(2, geo_trooper_leg),",
+        "                GEO_TRANSLATE_ROTATE(0, 0, 0, 0, 0, 0, 0),",
+        "                GEO_OPEN_NODE(),",
+        "                    GEO_DISPLAY_LIST(LAYER_OPAQUE, trooper_leg_dl),",
+        "                GEO_CLOSE_NODE(),",
+        "            GEO_CLOSE_NODE(),",
+        f"            GEO_TRANSLATE_ROTATE(0, {mx}, {my}, {mz}, 0, -90, 0),",
+        "            GEO_OPEN_NODE(),",
+        "                GEO_ASM(0, geo_trooper_flash),",
+        "                GEO_SCALE(0x00, 0),",
+        "                GEO_OPEN_NODE(),",
+        "                    GEO_DISPLAY_LIST(LAYER_OPAQUE, mario_weapon_flash),",
+        "                GEO_CLOSE_NODE(),",
+        "            GEO_CLOSE_NODE(),",
+        "        GEO_CLOSE_NODE(),",
+        "    GEO_CLOSE_NODE(),",
+        "    GEO_END(),",
+        "};\n"]
 open(os.path.join(HERE, 'weapons_geo.inc.c'), 'w').write("\n".join(geo))
 
 # externs for group0.h
@@ -553,6 +661,8 @@ externs += ["extern const Gfx mario_weapon_flash[];", "extern const Gfx zapper_s
             "extern const Gfx grenade_projectile_dl[];", "extern const GeoLayout plasma_bolt_geo[];", "extern const GeoLayout rail_beam_geo[];",
             "extern const GeoLayout rocket_projectile_geo[];", "extern const GeoLayout grenade_projectile_geo[];",
             "extern const GeoLayout mario_weapon_geo_opaque[];", "extern const GeoLayout mario_weapon_geo_transparent[];",
-            "extern const GeoLayout zapper_shot_geo[];", "extern const GeoLayout bullet_tracer_geo[];"]
+            "extern const GeoLayout zapper_shot_geo[];", "extern const GeoLayout bullet_tracer_geo[];",
+            "extern const Gfx trooper_body_dl[];", "extern const Gfx trooper_rifle_dl[];", "extern const Gfx trooper_leg_dl[];",
+            "extern const GeoLayout desert_trooper_geo[];"]
 open(os.path.join(HERE, 'weapons_externs.h'), 'w').write("// generated by gen_weapons.py\n" + "\n".join(externs) + "\n")
 print(f"wrote weapons.inc.c, weapons_geo.inc.c, weapons_externs.h ({len(W)} weapons, scale {SCALE})")
