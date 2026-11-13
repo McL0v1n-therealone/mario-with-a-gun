@@ -12,7 +12,8 @@ cp build/us/sm64.us.z64 "../Super Mario 64 (Zapper).z64"
 After editing weapon models: `cd actors/mario && python3 gen_weapons.py` (GUN_SCALE=2 for test-size guns).
 
 ## Controls
-X / N64 L = fire (hold for automatic weapons), A / D = D-pad left/right = switch weapon, W / S = D-pad up/down = jump 4 weapons.
+X / N64 L = fire (hold for automatic weapons), A / D = D-pad left/right = switch weapon, W / S = D-pad up/down = jump 4 weapons,
+Jetpack: jump, then press and hold A (Shift) again in mid-air.
 
 ## Features
 - 14 weapons: light gun, pistol, magnum, shotgun, SMG, rifle, minigun (spin-up), rocket launcher, grenade launcher,
@@ -20,6 +21,8 @@ X / N64 L = fire (hold for automatic weapons), A / D = D-pad left/right = switch
 - M4A1-style carbine (weapon 15)
 - Outpost: original desert defuse-style map (warp pipe next to Mario's start in Castle Grounds) with
   rifle-armed desert troopers (original enemy: patrol, line of sight, strafing, 3-round bursts)
+- Jetpack: twin tanks on Mario's back, flickering exhaust, 5 s of fuel that refills on the ground,
+  steering boost, no fall damage after flying (`src/game/jetpack.c`)
 - Kill counter, multi-kill announcer (DOUBLE KILL ... GODLIKE), kills heal a quarter wedge
 - Recoil, muzzle flash, slide/pump/cylinder animations, weapon draw animation, HUD weapon name
 - Aiming pose: right arm raises the gun when firing (renderer bone override)

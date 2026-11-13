@@ -10,6 +10,7 @@
 #include "game/mario_misc.h"
 #include "game/weapons.h"
 #include "game/trooper.h"
+#include "game/jetpack.h"
 #include "game/mario_actions_cutscene.h"
 
 // sky background params

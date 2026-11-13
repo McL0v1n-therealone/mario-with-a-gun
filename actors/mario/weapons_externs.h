@@ -43,3 +43,7 @@ extern const Gfx trooper_body_dl[];
 extern const Gfx trooper_rifle_dl[];
 extern const Gfx trooper_leg_dl[];
 extern const GeoLayout desert_trooper_geo[];
+extern const Gfx mario_jetpack_dl[];
+extern const Gfx mario_jetpack_flame_dl[];
+extern const GeoLayout mario_jetpack_geo_opaque[];
+extern const GeoLayout mario_jetpack_geo_transparent[];

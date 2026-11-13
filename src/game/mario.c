@@ -16,6 +16,7 @@
 #include "main.h"
 #include "mario.h"
 #include "weapons.h"
+#include "jetpack.h"
 #include "mario_actions_airborne.h"
 #include "mario_actions_automatic.h"
 #include "mario_actions_cutscene.h"
@@ -1707,6 +1708,7 @@ s32 execute_mario_action(UNUSED struct Object *o) {
         mario_handle_special_floors(gMarioState);
         mario_process_interactions(gMarioState);
         weapon_update(gMarioState);
+        jetpack_update(gMarioState);
 
         // If Mario is OOB, stop executing actions.
         if (gMarioState->floor == NULL) {

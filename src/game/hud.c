@@ -10,6 +10,7 @@
 #include "ingame_menu.h"
 #include "hud.h"
 #include "weapons.h"
+#include "jetpack.h"
 #include "segment2.h"
 #include "area.h"
 #include "save_file.h"
@@ -458,6 +459,7 @@ void render_hud(void) {
             render_hud_power_meter();
             render_hud_camera_status();
             weapon_render_hud();
+            jetpack_render_hud();
         }
 
         if (hudDisplayFlags & HUD_DISPLAY_FLAG_TIMER) {
