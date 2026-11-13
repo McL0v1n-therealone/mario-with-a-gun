@@ -12,7 +12,9 @@ Mario's fist bone), +Y = up, Z = sideways, origin at the wrist. The fist bone's 
 The weapon order here must match enum WeaponId in src/game/weapons.h.
 Set GUN_SCALE=2 for oversized test models.
 """
-import math, os
+import math, os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'tools'))
+import texgen
 
 SCALE = float(os.environ.get('GUN_SCALE', '1'))
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -37,6 +39,18 @@ COLORS = {
     'glowgreen': (0x70, 0xFF, 0x70),
 }
 GLOW = {'glowcyan', 'glowgreen'}
+
+# Era-style materials: small tiling detail texture tinted by the light colour, or an environment-
+# mapped chrome sheen (same trick as the metal cap). units_per_texel controls texture density.
+MATERIALS = {
+    'wood': ('grain', 2.0), 'darkwood': ('grain', 2.0), 'polymer': ('stipple', 1.5), 'rubber': ('stipple', 1.5),
+    'black': ('stipple', 1.5), 'gunmetal': ('brushed', 2.0), 'blued': ('brushed', 2.0), 'olive': ('stipple', 1.8),
+    'redtank': ('brushed', 2.0), 'purple': ('stipple', 1.5), 'orange': ('stipple', 1.5), 'toydark': ('stipple', 1.5),
+    'khaki': ('fabric', 1.2), 'armor': ('fabric', 1.6), 'mask': ('fabric', 1.0), 'glove': ('stipple', 1.0),
+    'boot': ('stipple', 1.2),
+    'steel': 'chrome', 'ceramic': 'chrome',
+}
+TEXTURE_KINDS = sorted({m[0] for m in MATERIALS.values() if isinstance(m, tuple)})
 
 # ------------------------------------------------------------------ primitives (logical frame)
 def rotz(p, a, c=(0, 0, 0)):
@@ -394,7 +408,7 @@ def to_fist(tris, offset=(0, 0, 0)):
         out.append([nt[0], nt[2], nt[1]])
     return out
 
-def emit_mesh(name, tris):
+def emit_mesh(name, tris, units_per_texel=None):
     verts, gfx, batch, cur = [], [], [], {}
     def flush():
         if not batch: return
@@ -409,7 +423,13 @@ def emit_mesh(name, tris):
                 a = batch[i]; gfx.append(f"    gsSP1Triangle({a[0]}, {a[1]}, {a[2]}, 0x0),")
         batch.clear(); cur.clear()
     for t in tris:
-        keys = [(tuple(int(round(c)) for c in p), tuple(nb(c) for c in n)) for p, n in t]
+        if units_per_texel:
+            e1 = [t[1][0][i] - t[0][0][i] for i in range(3)]; e2 = [t[2][0][i] - t[0][0][i] for i in range(3)]
+            fnorm = (e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0])
+            uvs = texgen.uv_planar([p for p, _ in t], fnorm, units_per_texel)
+        else:
+            uvs = [(0, 0)] * 3
+        keys = [(tuple(int(round(c)) for c in p), tuple(nb(c) for c in n), uv) for (p, n), uv in zip(t, uvs)]
         if len(set(k[0] for k in keys)) < 3:
             continue  # degenerate after rounding
         new = [k for k in dict.fromkeys(keys) if k not in cur]
@@ -419,8 +439,8 @@ def emit_mesh(name, tris):
         batch.append(tuple(cur[k] for k in keys))
     flush()
     vtx = [f"static const Vtx {name}_vtx[] = {{"]
-    for p, n in verts:
-        vtx.append(f"    {{{{{{ {p[0]}, {p[1]}, {p[2]} }}, 0, {{ 0, 0 }}, {{ 0x{n[0]:02x}, 0x{n[1]:02x}, 0x{n[2]:02x}, 0xff }}}}}},")
+    for p, n, uv in verts:
+        vtx.append(f"    {{{{{{ {p[0]}, {p[1]}, {p[2]} }}, 0, {{ {uv[0]}, {uv[1]} }}, {{ 0x{n[0]:02x}, 0x{n[1]:02x}, 0x{n[2]:02x}, 0xff }}}}}},")
     vtx.append("};\n")
     return "\n".join(vtx), gfx
 
@@ -429,16 +449,41 @@ for c, (r, g, b) in COLORS.items():
     ar, ag, ab = (r, g, b) if c in GLOW else (r // 2, g // 2, b // 2)
     out.append(f"static const Lights1 weapon_{c}_lights = gdSPDefLights1(0x{ar:02x}, 0x{ag:02x}, 0x{ab:02x}, 0x{r:02x}, 0x{g:02x}, 0x{b:02x}, 0x28, 0x28, 0x28);\n")
 
+for kind in TEXTURE_KINDS:
+    out.append(texgen.c_texture(f"weapon_tex_{kind}", kind))
+
+def material_begin(color, fade):
+    """Display list commands to start drawing a colour group; returns (cmds, units_per_texel)."""
+    cc = "G_CC_MODULATERGBFADEA" if fade else "G_CC_MODULATERGB"
+    m = MATERIALS.get(color)
+    lights = [f"    gsSPLight(&weapon_{color}_lights.l, 1),", f"    gsSPLight(&weapon_{color}_lights.a, 2),"]
+    if m == 'chrome':
+        return (["    gsDPPipeSync(),", "    gsSPSetGeometryMode(G_TEXTURE_GEN),", f"    gsDPSetCombineMode({cc}, {cc}),",
+                 "    gsDPLoadTextureBlock(mario_texture_metal, G_IM_FMT_RGBA, G_IM_SIZ_16b, 64, 32, 0, G_TX_WRAP | G_TX_NOMIRROR, G_TX_WRAP | G_TX_NOMIRROR, 6, 5, G_TX_NOLOD, G_TX_NOLOD),",
+                 "    gsSPTexture(0x0F80, 0x07C0, 0, G_TX_RENDERTILE, G_ON),"] + lights, None)
+    if isinstance(m, tuple):
+        kind, upt = m
+        return (["    gsDPPipeSync(),", "    gsSPClearGeometryMode(G_TEXTURE_GEN),", f"    gsDPSetCombineMode({cc}, {cc}),",
+                 f"    gsDPLoadTextureBlock(weapon_tex_{kind}, G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0, G_TX_WRAP | G_TX_NOMIRROR, G_TX_WRAP | G_TX_NOMIRROR, 5, 5, G_TX_NOLOD, G_TX_NOLOD),",
+                 "    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON),"] + lights, upt)
+    plain = "G_CC_SHADEFADEA" if fade else "G_CC_SHADE"
+    return (["    gsDPPipeSync(),", "    gsSPClearGeometryMode(G_TEXTURE_GEN),", "    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF),",
+             f"    gsDPSetCombineMode({plain}, {plain}),"] + lights, None)
+
+MATERIAL_END = ["    gsDPPipeSync(),", "    gsSPClearGeometryMode(G_TEXTURE_GEN),", "    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF),",
+                "    gsDPSetCombineMode(G_CC_SHADE, G_CC_SHADE),"]
+
 def emit_model(dlname, parts, offset=(0, 0, 0)):
     groups = {}
     for color, tris in parts:
         groups.setdefault(color, []).extend(tris)
-    body = ["    gsDPPipeSync(),", "    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF),",
-            "    gsDPSetCombineMode(G_CC_SHADEFADEA, G_CC_SHADEFADEA),"]
+    body = []
     for color, tris in groups.items():
-        vtx, gfx = emit_mesh(f"{dlname}_{color}", to_fist(tris, offset))
+        cmds, upt = material_begin(color, fade=True)
+        vtx, gfx = emit_mesh(f"{dlname}_{color}", to_fist(tris, offset), upt)
         out.append(vtx)
-        body += [f"    gsSPLight(&weapon_{color}_lights.l, 1),", f"    gsSPLight(&weapon_{color}_lights.a, 2),"] + gfx
+        body += cmds + gfx
+    body += MATERIAL_END
     out.append(f"const Gfx {dlname}[] = {{\n" + "\n".join(body) + "\n    gsSPEndDisplayList(),\n};\n")
 
 for w in W:
@@ -476,7 +521,7 @@ def to_object_space(tris, scale=1.0, offset=(0, 0, 0)):
     return fix_winding([[(((p[2]) * scale + offset[0], p[1] * scale + offset[1], p[0] * scale + offset[2]),
                            (n[2], n[1], n[0])) for p, n in t] for t in tris])
 
-def emit_object_model(dlname, parts, scale=1.0, offset=(0, 0, 0), swap=True):
+def emit_object_model(dlname, parts, scale=1.0, offset=(0, 0, 0), swap=True, fade=False):
     groups = {}
     for color, tris in parts:
         if swap:
@@ -484,12 +529,13 @@ def emit_object_model(dlname, parts, scale=1.0, offset=(0, 0, 0), swap=True):
         else:
             tris = fix_winding([[((p[0] * scale + offset[0], p[1] * scale + offset[1], p[2] * scale + offset[2]), n) for p, n in t] for t in tris])
         groups.setdefault(color, []).extend(tris)
-    body = ["    gsDPPipeSync(),", "    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF),",
-            "    gsDPSetCombineMode(G_CC_SHADE, G_CC_SHADE),"]
+    body = []
     for color, tris in groups.items():
-        vtx, gfx = emit_mesh(f"{dlname}_{color}", tris)
+        cmds, upt = material_begin(color, fade=fade)
+        vtx, gfx = emit_mesh(f"{dlname}_{color}", tris, upt)
         out.append(vtx)
-        body += [f"    gsSPLight(&weapon_{color}_lights.l, 1),", f"    gsSPLight(&weapon_{color}_lights.a, 2),"] + gfx
+        body += cmds + gfx
+    body += MATERIAL_END
     out.append(f"const Gfx {dlname}[] = {{\n" + "\n".join(body) + "\n    gsSPEndDisplayList(),\n};\n")
 
 fin = lambda a: ('black', box((-22 + 4, 0, 0), (8, 1.5, 12), 0)) if a == 0 else ('black', box((-22 + 4, 0, 0), (8, 12, 1.5), 0))
@@ -530,7 +576,7 @@ unlit_dl("mario_weapon_flash", fv, ft, (255, 210, 90))
 COLORS_T = {'khaki': (0xB4, 0x9C, 0x6C), 'armor': (0x6E, 0x6A, 0x48), 'mask': (0x34, 0x32, 0x30),
             'boot': (0x3A, 0x2A, 0x1C), 'visor': (0xFF, 0x30, 0x20), 'glove': (0x2A, 0x2A, 0x2A)}
 for c, (r, g, b) in COLORS_T.items():
-    ar, ag, ab = (r, g, b) if c == 'visor' else (r // 2, g // 2, b // 2)
+    ar, ag, ab = (r, g, b) if c == 'visor' else (r // 2, g // 2, b // 2)  # visor glows
     out.append(f"static const Lights1 weapon_{c}_lights = gdSPDefLights1(0x{ar:02x}, 0x{ag:02x}, 0x{ab:02x}, 0x{r:02x}, 0x{g:02x}, 0x{b:02x}, 0x28, 0x28, 0x28);\n")
 
 def ybox(center, half):  # plain axis box in object space
@@ -577,7 +623,7 @@ emit_object_model("mario_jetpack_dl", [
     ('black',    prism(-34, -10, -108, 32, 18, 12, r1=13)),       # nozzle bells
     ('black',    prism(-34, -10, -108, -32, 18, 12, r1=13)),
     ('gunmetal', box((-2, -100, 0), (6, 10, 40))),                # cross brace
-], swap=False)
+], swap=False, fade=True)
 
 def unlit_multi(name, groups):
     """groups: [(rgb, tris)] - flat unlit colors, double sided."""

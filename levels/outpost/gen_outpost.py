@@ -5,7 +5,9 @@ Outputs into areas/1/: model.inc.c (vertex-colored display list), collision.inc.
 objects.inc.c (trooper / crate / pickup placements). Coordinates: X east, Z south, Y up.
 Everything stays inside the engine's +/-8192 level boundary.
 """
-import os, random
+import os, random, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'tools'))
+import texgen
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 rng = random.Random(7)
@@ -22,6 +24,14 @@ COLORS = {
     'paint':     (0xE0, 0x6A, 0x20),
     'platform':  (0xBE, 0xA4, 0x7A),
 }
+
+# surface -> (detail texture, world units per texel); vertex colours tint and shade it
+MATERIALS = {
+    'sand': ('sand', 14.0), 'sandstone': ('bricks', 10.0), 'wall': ('bricks', 12.0), 'trim': ('stone', 6.0),
+    'crate': ('planks', 7.0), 'crate2': ('planks', 7.0), 'stone': ('stone', 9.0), 'door': ('doorplanks', 8.0),
+    'platform': ('stone', 10.0), 'paint': None,
+}
+FOG_COLOR = (214, 196, 160)   # sandy haze matching the desert sky horizon
 
 boxes = []   # (x0, x1, y0, y1, z0, z1, color, solid)
 ramps = []   # (x0, x1, z0, z1, h, direction, color)  height rises toward 'direction'
@@ -117,8 +127,9 @@ def quad(p, face, color, solid, render=True):
     j = rng.uniform(-0.04, 0.04)
     if render:
         cs = [shade(color, face, v[1], j) for v in p]
-        vis.append([(p[0], cs[0]), (p[1], cs[1]), (p[2], cs[2])])
-        vis.append([(p[0], cs[0]), (p[2], cs[2]), (p[3], cs[3])])
+        name = color if isinstance(color, str) else 'sand'
+        vis.append((name, [(p[0], cs[0]), (p[1], cs[1]), (p[2], cs[2])]))
+        vis.append((name, [(p[0], cs[0]), (p[2], cs[2]), (p[3], cs[3])]))
     if solid:
         col.append([p[0], p[1], p[2]])
         col.append([p[0], p[2], p[3]])
@@ -144,40 +155,70 @@ for (x0, x1, z0, z1, h, d, color) in ramps:
 T = 1000
 for xi in range(-6000, 6000, T):
     for zi in range(-6000, 6000, T):
-        quad([(xi, 0, zi), (xi, 0, zi + T), (xi + T, 0, zi + T), (xi + T, 0, zi)], '+y', COLORS['sand'], True)
+        quad([(xi, 0, zi), (xi, 0, zi + T), (xi + T, 0, zi + T), (xi + T, 0, zi)], '+y', 'sand', True)
 
 # ------------------------------------------------------------------ emit display list
 def emit_dl():
-    lines, verts, batch, cur = [], [], [], {}
-    def flush():
-        if not batch: return
-        start = len(verts)
-        for k, _ in sorted(cur.items(), key=lambda kv: kv[1]): verts.append(k)
-        lines.append(f"    gsSPVertex(outpost_area1_vtx + {start}, {len(cur)}, 0),")
-        for i in range(0, len(batch), 2):
-            if i + 1 < len(batch):
-                a, b = batch[i], batch[i + 1]
-                lines.append(f"    gsSP2Triangles({a[0]}, {a[1]}, {a[2]}, 0x0, {b[0]}, {b[1]}, {b[2]}, 0x0),")
+    """One vertex buffer, drawn per material: 2-cycle fog + texture * vertex colour, like the stock levels."""
+    verts, lines = [], []
+    groups = {}
+    for name, t in vis:
+        groups.setdefault(name, []).append(t)
+    tex_used = sorted({MATERIALS[n][0] for n in groups if MATERIALS.get(n)})
+    for name, tris in groups.items():
+        m = MATERIALS.get(name)
+        lines.append("    gsDPPipeSync(),")
+        if m:
+            kind, upt = m
+            lines += ["    gsDPSetCombineMode(G_CC_MODULATERGB, G_CC_PASS2),",
+                      f"    gsDPLoadTextureBlock(outpost_tex_{kind}, G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0, G_TX_WRAP | G_TX_NOMIRROR, G_TX_WRAP | G_TX_NOMIRROR, 5, 5, G_TX_NOLOD, G_TX_NOLOD),",
+                      "    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON),"]
+        else:
+            upt = None
+            lines += ["    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF),",
+                      "    gsDPSetCombineMode(G_CC_SHADE, G_CC_PASS2),"]
+        batch, cur = [], {}
+        def flush():
+            if not batch: return
+            start = len(verts)
+            for k, _ in sorted(cur.items(), key=lambda kv: kv[1]): verts.append(k)
+            lines.append(f"    gsSPVertex(outpost_area1_vtx + {start}, {len(cur)}, 0),")
+            for i in range(0, len(batch), 2):
+                if i + 1 < len(batch):
+                    a, b = batch[i], batch[i + 1]
+                    lines.append(f"    gsSP2Triangles({a[0]}, {a[1]}, {a[2]}, 0x0, {b[0]}, {b[1]}, {b[2]}, 0x0),")
+                else:
+                    a = batch[i]; lines.append(f"    gsSP1Triangle({a[0]}, {a[1]}, {a[2]}, 0x0),")
+            batch.clear(); cur.clear()
+        for t in tris:
+            pts = [p for p, _ in t]
+            if upt:
+                e1 = [pts[1][i] - pts[0][i] for i in range(3)]; e2 = [pts[2][i] - pts[0][i] for i in range(3)]
+                n = (e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0])
+                uvs = texgen.uv_planar(pts, n, upt)
             else:
-                a = batch[i]; lines.append(f"    gsSP1Triangle({a[0]}, {a[1]}, {a[2]}, 0x0),")
-        batch.clear(); cur.clear()
-    for t in vis:
-        keys = [(tuple(int(c) for c in p), rgb) for p, rgb in t]
-        new = [k for k in dict.fromkeys(keys) if k not in cur]
-        if len(cur) + len(new) > 16: flush()
-        for k in keys:
-            if k not in cur: cur[k] = len(cur)
-        batch.append(tuple(cur[k] for k in keys))
-    flush()
-    vtx = ["// Outpost - generated by gen_outpost.py. Do not edit by hand.\n",
-           "static const Vtx outpost_area1_vtx[] = {"]
-    vtx += [f"    {{{{{{ {p[0]}, {p[1]}, {p[2]} }}, 0, {{ 0, 0 }}, {{ 0x{c[0]:02x}, 0x{c[1]:02x}, 0x{c[2]:02x}, 0xff }}}}}}," for p, c in verts]
-    vtx.append("};\n")
+                uvs = [(0, 0)] * 3
+            keys = [(tuple(int(c) for c in p), rgb, uv) for (p, rgb), uv in zip(t, uvs)]
+            new = [k for k in dict.fromkeys(keys) if k not in cur]
+            if len(cur) + len(new) > 16: flush()
+            for k in keys:
+                if k not in cur: cur[k] = len(cur)
+            batch.append(tuple(cur[k] for k in keys))
+        flush()
+    head = ["// Outpost - generated by gen_outpost.py. Do not edit by hand.\n"]
+    head += [texgen.c_texture(f"outpost_tex_{k}", k) for k in tex_used]
+    head += ["static const Vtx outpost_area1_vtx[] = {"]
+    head += [f"    {{{{{{ {p[0]}, {p[1]}, {p[2]} }}, 0, {{ {uv[0]}, {uv[1]} }}, {{ 0x{c[0]:02x}, 0x{c[1]:02x}, 0x{c[2]:02x}, 0xff }}}}}}," for p, c, uv in verts]
+    head.append("};\n")
+    fr, fg, fb = FOG_COLOR
     dl = ["const Gfx outpost_area1_dl[] = {", "    gsDPPipeSync(),", "    gsSPClearGeometryMode(G_LIGHTING),",
-          "    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF),", "    gsDPSetCombineMode(G_CC_SHADE, G_CC_SHADE),"]
+          "    gsDPSetCycleType(G_CYC_2CYCLE),", "    gsDPSetRenderMode(G_RM_FOG_SHADE_A, G_RM_AA_ZB_OPA_SURF2),",
+          f"    gsDPSetFogColor({fr}, {fg}, {fb}, 255),", "    gsSPFogPosition(960, 1000),", "    gsSPSetGeometryMode(G_FOG),"]
     dl += lines
-    dl += ["    gsDPPipeSync(),", "    gsSPSetGeometryMode(G_LIGHTING),", "    gsSPEndDisplayList(),", "};\n"]
-    return "\n".join(vtx) + "\n" + "\n".join(dl), len(verts)
+    dl += ["    gsDPPipeSync(),", "    gsDPSetCycleType(G_CYC_1CYCLE),", "    gsDPSetRenderMode(G_RM_AA_ZB_OPA_SURF, G_RM_NOOP2),",
+           "    gsSPClearGeometryMode(G_FOG),", "    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF),",
+           "    gsDPSetCombineMode(G_CC_SHADE, G_CC_SHADE),", "    gsSPSetGeometryMode(G_LIGHTING),", "    gsSPEndDisplayList(),", "};\n"]
+    return "\n".join(head) + "\n" + "\n".join(dl), len(verts)
 
 model, nverts = emit_dl()
 open(os.path.join(HERE, 'areas/1/model.inc.c'), 'w').write(model)

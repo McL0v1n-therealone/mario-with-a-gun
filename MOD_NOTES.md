@@ -23,6 +23,9 @@ Jetpack: jump, then press and hold A (Shift) again in mid-air.
   rifle-armed desert troopers (original enemy: patrol, line of sight, strafing, 3-round bursts)
 - Jetpack: twin tanks on Mario's back, flickering exhaust, 5 s of fuel that refills on the ground,
   steering boost, no fall damage after flying (`src/game/jetpack.c`)
+- Era-style look: 32x32 RGBA16 detail textures (grain, stipple, brushed, fabric, sand, bricks, planks, stone)
+  tinted by lights/vertex colours, env-mapped chrome on steel parts, distance fog in the Outpost
+  (`tools/texgen.py`)
 - Kill counter, multi-kill announcer (DOUBLE KILL ... GODLIKE), kills heal a quarter wedge
 - Recoil, muzzle flash, slide/pump/cylinder animations, weapon draw animation, HUD weapon name
 - Aiming pose: right arm raises the gun when firing (renderer bone override)
