@@ -242,7 +242,7 @@ void weapon_render_hud(void) {
 static s32 weapon_is_protected(struct Object *obj) {
     static const BehaviorScript *const protectedBhvs[] = {
         bhvMips, bhvBowserTailAnchor, bhvSmallPenguin, bhvUkiki, bhvUnagi, bhvBobombBuddy,
-        bhvBobombBuddyOpensCannon, bhvToadMessage, bhvYoshi, bhvTuxiesMother, bhvHoot, bhvChainChompGate,
+        bhvBobombBuddyOpensCannon, bhvYoshi, bhvTuxiesMother, bhvHoot, bhvChainChompGate,
     };
     s32 i;
 
@@ -263,6 +263,34 @@ static s32 weapon_is_protected(struct Object *obj) {
 static s32 weapon_is_solid_enemy(struct Object *obj) {
     return obj_has_behavior(obj, bhvThwomp) || obj_has_behavior(obj, bhvThwomp2) || obj_has_behavior(obj, bhvSmallWhomp)
         || obj_has_behavior(obj, bhvWhompKingBoss) || obj_has_behavior(obj, bhvGrindel) || obj_has_behavior(obj, bhvSpindel);
+}
+
+// Things that aren't alive: they break, crumble or explode instead of bleeding.
+static s32 weapon_is_object(struct Object *obj) {
+    static const BehaviorScript *const objectBhvs[] = {
+        bhvBreakableBox, bhvBreakableBoxSmall, bhvJumpingBox, bhvExclamationBox, bhvHiddenObject,
+        bhvBigBoulder, bhvBowlingBall, bhvPitBowlingBall, bhvFreeBowlingBall, bhvBulletBill,
+        bhvCirclingAmp, bhvHomingAmp, bhvMadPiano, bhvFlyingBookend, bhvHeaveHo, bhvMrBlizzard,
+        bhvSnufitBalls, bhvThwomp, bhvThwomp2, bhvSmallWhomp, bhvWhompKingBoss, bhvGrindel, bhvSpindel,
+        bhvChainChomp, bhvEyerokHand, bhvFlame, bhvFlameBouncing, bhvFlameBowser, bhvFlameFloatingLanding,
+        bhvFlameLargeBurningOut, bhvFlameMovingForwardGrowing, bhvFlamethrowerFlame,
+        bhvBobomb, bhvBowserBomb,
+    };
+    s32 i;
+
+    if (obj->oInteractType & (INTERACT_BREAKABLE | INTERACT_FLAME | INTERACT_SNUFIT_BULLET | INTERACT_SHOCK)) {
+        return TRUE;
+    }
+    for (i = 0; i < (s32) ARRAY_COUNT(objectBhvs); i++) {
+        if (obj_has_behavior(obj, objectBhvs[i])) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+static s32 weapon_is_explosive(struct Object *obj) {
+    return obj_has_behavior(obj, bhvBobomb) || obj_has_behavior(obj, bhvBowserBomb);
 }
 
 static s32 weapon_is_boo(struct Object *obj) {
@@ -295,7 +323,8 @@ static struct Object *weapon_find_target(struct Object *shot) {
             u32 type = obj->oInteractType;
 
             if ((obj->activeFlags & ACTIVE_FLAG_ACTIVE) && (s32) obj != shot->oAction
-                && !(type & SHOT_IGNORED) && !(obj->header.gfx.node.flags & GRAPH_RENDER_INVISIBLE)
+                && (!(type & SHOT_IGNORED) || obj_has_behavior(obj, bhvToadMessage))
+                && !(obj->header.gfx.node.flags & GRAPH_RENDER_INVISIBLE)
                 && (type != 0 || weapon_is_solid_enemy(obj)) && !weapon_is_protected(obj)) {
                 f32 radius, bottom, height;
                 f32 dx = obj->oPosX - shot->oPosX;
@@ -371,14 +400,36 @@ static f32 weapon_target_size(struct Object *obj) {
     return size < 0.6f ? 0.6f : (size > 3.0f ? 3.0f : size);
 }
 
+// Death effect: gore for living things, rubble/dust for objects.
+static void weapon_death_fx(struct Object *t, struct Object *shot, f32 size) {
+    if (!weapon_is_object(t)) {
+        gore_explode(shot, t->oPosX, weapon_target_center_y(t), t->oPosZ, size);
+    } else {
+        struct Object *saved = gCurrentObject;
+
+        gCurrentObject = t; // the particle helpers spawn around the current object
+        spawn_mist_particles_variable(0, 0, 40.0f * size);
+        spawn_triangle_break_particles((s16)(8 + 4 * size), MODEL_DIRT_ANIMATION, 2.0f * size, 4);
+        gCurrentObject = saved;
+        play_sound(SOUND_GENERAL_WALL_EXPLOSION, shot->header.gfx.cameraToObject);
+    }
+}
+
 // Blow an ordinary enemy apart: gore, coins, any item it carried, and its child objects.
 static void weapon_kill(struct Object *t, struct Object *shot) {
     static const s32 lists[] = { OBJ_LIST_GENACTOR, OBJ_LIST_PUSHABLE, OBJ_LIST_DESTRUCTIVE, OBJ_LIST_DEFAULT,
                                  OBJ_LIST_UNIMPORTANT, OBJ_LIST_SURFACE, OBJ_LIST_POLELIKE };
     s32 i;
 
-    gore_explode(shot, t->oPosX, weapon_target_center_y(t), t->oPosZ, weapon_target_size(t));
-    play_sound(SOUND_OBJ_DEFAULT_DEATH, shot->header.gfx.cameraToObject);
+    if (weapon_is_explosive(t)) {
+        struct Object *boom = spawn_object(t, MODEL_EXPLOSION, bhvExplosion);
+        boom->oGraphYOffset += 100.0f;
+    } else {
+        weapon_death_fx(t, shot, weapon_target_size(t));
+        if (!weapon_is_object(t)) {
+            play_sound(SOUND_OBJ_DEFAULT_DEATH, shot->header.gfx.cameraToObject);
+        }
+    }
     if (t->oNumLootCoins > 0) {
         obj_spawn_loot_yellow_coins(t, t->oNumLootCoins, 20.0f);
     }
@@ -426,17 +477,20 @@ static void weapon_kill(struct Object *t, struct Object *shot) {
 // Apply one bullet hit. Bosses and enemies with special defeat logic use their own death
 // so stars, music and level progress still work; everything else is blown apart.
 static void weapon_damage(struct Object *t, struct Object *shot) {
-    f32 cy = weapon_target_center_y(t);
-    s32 hits;
+    if (!weapon_is_object(t)) {
+        gore_spray(shot, shot->oPosX, shot->oPosY, shot->oPosZ, shot->oMoveAngleYaw, 6, 9.0f);
+    }
 
-    gore_spray(shot, shot->oPosX, shot->oPosY, shot->oPosZ, shot->oMoveAngleYaw, 6, 9.0f);
-
-    if (obj_has_behavior(t, bhvBowser)) {
+    if (t->oInteractType & INTERACT_BREAKABLE) {
+        // crates, cork boxes, ! boxes: break exactly like a punch would (coins, items, debris)
+        t->oInteractStatus = ATTACK_PUNCH | INT_STATUS_INTERACTED | INT_STATUS_WAS_ATTACKED;
+        play_sound(SOUND_GENERAL_BREAK_BOX, shot->header.gfx.cameraToObject);
+    } else if (obj_has_behavior(t, bhvBowser)) {
         if (t->oAction != BOWSER_ACT_HIT_MINE && t->oAction != BOWSER_ACT_DEAD && t->oAction != BOWSER_ACT_THROWN
             && t->oAction != BOWSER_ACT_JUMP_ONTO_STAGE && t->oAction != BOWSER_ACT_INTRO_WALK
             && weapon_boss_hit(t) >= BOWSER_HITS) {
             weapon_boss_reset(t);
-            gore_explode(shot, t->oPosX, cy, t->oPosZ, 1.5f);
+            weapon_death_fx(t, shot, 1.5f);
             if (--t->oHealth <= 0) {
                 t->oAction = BOWSER_ACT_DEAD;
             } else {
@@ -447,14 +501,14 @@ static void weapon_damage(struct Object *t, struct Object *shot) {
         }
     } else if (obj_has_behavior(t, bhvKingBobomb)) {
         if (t->oAction != 7 && t->oAction != 8 && weapon_boss_hit(t) >= BOSS_HITS) {
-            gore_explode(shot, t->oPosX, cy, t->oPosZ, 2.5f);
+            weapon_death_fx(t, shot, 2.5f);
             t->oHealth = 0;
             t->oAction = 7; // defeated: dialog, then his star
         }
     } else if (obj_has_behavior(t, bhvWhompKingBoss) || obj_has_behavior(t, bhvSmallWhomp)) {
         s32 needed = obj_has_behavior(t, bhvWhompKingBoss) ? BOSS_HITS : 1;
         if (t->oAction != 8 && weapon_boss_hit(t) >= needed) {
-            gore_explode(shot, t->oPosX, cy, t->oPosZ, 2.5f);
+            weapon_death_fx(t, shot, 2.5f);
             t->oHealth = 0;
             t->oAction = 8; // whomp_die: coins, or the star for the king
         }
@@ -464,20 +518,20 @@ static void weapon_damage(struct Object *t, struct Object *shot) {
         s32 needed = t->oBhvParams2ndByte == BULLY_BP_SIZE_SMALL ? 1 : BIG_BULLY_HITS;
         if (t->oAction != BULLY_ACT_LAVA_DEATH && t->oAction != BULLY_ACT_DEATH_PLANE_DEATH
             && weapon_boss_hit(t) >= needed) {
-            gore_explode(shot, t->oPosX, cy, t->oPosZ, needed > 1 ? 2.5f : 1.2f);
+            weapon_death_fx(t, shot, needed > 1 ? 2.5f : 1.2f);
             t->oForwardVel = 0.0f;
             t->oAction = BULLY_ACT_LAVA_DEATH; // sinks; counts minions / spawns the big bully's star
         }
     } else if (obj_has_behavior(t, bhvWigglerHead)) {
         if (t->oAction != WIGGLER_ACT_SHRINK && t->oAction != WIGGLER_ACT_FALL_THROUGH_FLOOR
             && weapon_boss_hit(t) >= BOSS_HITS) {
-            gore_explode(shot, t->oPosX, cy, t->oPosZ, 2.0f);
+            weapon_death_fx(t, shot, 2.0f);
             t->oHealth = 1;
             t->oAction = WIGGLER_ACT_SHRINK; // shrinks, drops his star
         }
     } else if (obj_has_behavior(t, bhvEyerokHand)) {
         if (t->oAction != EYEROK_HAND_ACT_DIE && t->oHealth > 0 && weapon_boss_hit(t) >= EYEROK_HAND_HITS) {
-            gore_explode(shot, t->oPosX, cy, t->oPosZ, 2.0f);
+            weapon_death_fx(t, shot, 2.0f);
             t->oHealth = 0;
             t->parentObj->oEyerokBossNumHands--;
             t->oAction = EYEROK_HAND_ACT_DIE;

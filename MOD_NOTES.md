@@ -22,7 +22,9 @@ X / N64 L = fire (hold for SMG & rifle), A / D = D-pad left/right = switch weapo
   die through their own defeat logic (stars, music, progress intact); Bowser counts as a bomb hit every 15 shots
 - Gore: blood spray on every hit, flesh/bone gibs and spreading blood pools on kills (`src/game/gore.c`,
   models from `actors/mario/gen_gore.py`); gore is capped so it never exhausts the object pool
-- Protected (never shot): talking NPCs, Toads, Bob-omb Buddies, Yoshi, Hoot, Koopa the Quick, Mips,
+- Objects don't bleed: crates/boxes break normally, bombs explode, stone/metal/fire enemies crumble into debris
+- Toad can be shot (he respawns when the area reloads)
+- Protected (never shot): other talking NPCs, Bob-omb Buddies, Yoshi, Hoot, Koopa the Quick, Mips,
   baby penguin, Tuxie's mom, Ukiki, Unagi, Bowser's tail
 - Opening cutscene skipped on new save files
 - 8MB Expansion Pak memory layout (USE_EXT_RAM) - vanilla 4MB pool ran out in Castle Grounds
