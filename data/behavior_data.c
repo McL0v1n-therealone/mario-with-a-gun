@@ -7,6 +7,7 @@
 #include "game/interaction.h"
 #include "game/behavior_actions.h"
 #include "game/weapons.h"
+#include "game/gore.h"
 #include "game/mario_actions_cutscene.h"
 #include "game/mario_misc.h"
 #include "game/object_helpers.h"
@@ -6116,5 +6117,30 @@ const BehaviorScript bhvWeaponShot[] = {
     OR_INT(oFlags, OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE),
     BEGIN_LOOP(),
         CALL_NATIVE(bhv_weapon_shot_loop),
+    END_LOOP(),
+};
+
+// Gore spawned by Mario's weapons (see src/game/gore.c)
+const BehaviorScript bhvGoreBloodDrop[] = {
+    BEGIN(OBJ_LIST_UNIMPORTANT),
+    OR_INT(oFlags, OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE),
+    BEGIN_LOOP(),
+        CALL_NATIVE(bhv_gore_blood_drop_loop),
+    END_LOOP(),
+};
+
+const BehaviorScript bhvGoreGib[] = {
+    BEGIN(OBJ_LIST_UNIMPORTANT),
+    OR_INT(oFlags, OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE),
+    BEGIN_LOOP(),
+        CALL_NATIVE(bhv_gore_gib_loop),
+    END_LOOP(),
+};
+
+const BehaviorScript bhvGoreBloodPool[] = {
+    BEGIN(OBJ_LIST_UNIMPORTANT),
+    OR_INT(oFlags, OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE),
+    BEGIN_LOOP(),
+        CALL_NATIVE(bhv_gore_blood_pool_loop),
     END_LOOP(),
 };

@@ -18,6 +18,12 @@ X / N64 L = fire (hold for SMG & rifle), A / D = D-pad left/right = switch weapo
 - 6 weapons (light gun, pistol, magnum, shotgun, SMG, rifle) with projectiles that hit enemies like a punch
 - Recoil, muzzle flash, slide/pump/cylinder animations, weapon draw animation, HUD weapon name
 - Aiming pose: right arm raises the gun when firing (renderer bone override)
+- Guns kill everything hostile: ordinary enemies explode into gibs + coins; bosses take several hits and
+  die through their own defeat logic (stars, music, progress intact); Bowser counts as a bomb hit every 15 shots
+- Gore: blood spray on every hit, flesh/bone gibs and spreading blood pools on kills (`src/game/gore.c`,
+  models from `actors/mario/gen_gore.py`); gore is capped so it never exhausts the object pool
+- Protected (never shot): talking NPCs, Toads, Bob-omb Buddies, Yoshi, Hoot, Koopa the Quick, Mips,
+  baby penguin, Tuxie's mom, Ukiki, Unagi, Bowser's tail
 - Opening cutscene skipped on new save files
 - 8MB Expansion Pak memory layout (USE_EXT_RAM) - vanilla 4MB pool ran out in Castle Grounds
 
@@ -28,6 +34,8 @@ X / N64 L = fire (hold for SMG & rifle), A / D = D-pad left/right = switch weapo
 | Weapon models (generator + generated output) | `actors/mario/gen_weapons.py`, `weapons*.inc.c` |
 | Gun + aim markers in Mario's skeleton | `actors/mario/geo.inc.c` |
 | Bone override hook | `src/game/rendering_graph_node.c` |
+| Damage rules, bosses, kills | `src/game/weapons.c` (`weapon_damage`, `weapon_kill`) |
+| Blood & gibs | `src/game/gore.c`, `actors/mario/gen_gore.py` |
 | Intro skip | `src/game/level_update.c` |
 | Weapon HUD label | `src/game/hud.c` |
 | Model IDs / loading / projectile behavior | `include/model_ids.h`, `levels/scripts.c`, `data/behavior_data.c` |

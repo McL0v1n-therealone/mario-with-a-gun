@@ -17,3 +17,4 @@
 #include "sparkle_animation/geo.inc.c"
 #include "mario/geo.inc.c"
 #include "mario/weapons_geo.inc.c"
+#include "mario/gore_geo.inc.c"

@@ -560,6 +560,10 @@
 #define MODEL_TRAJECTORY_MARKER_BALL      0xE1        // bowling_ball_track_geo - duplicate used in SSL Pyramid small sized and as a track ball
 #define MODEL_ZAPPER_SHOT                 0xF0        // zapper_shot_geo - Mario's light gun shot
 #define MODEL_BULLET                      0xF1        // bullet_tracer_geo - Mario's bullets
+#define MODEL_GORE_BLOOD_DROP             0xF2        // gore_blood_drop_geo
+#define MODEL_GORE_GIB_FLESH              0xF3        // gore_gib_flesh_geo
+#define MODEL_GORE_GIB_BONE               0xF4        // gore_gib_bone_geo
+#define MODEL_GORE_BLOOD_POOL             0xF5        // gore_blood_pool_geo
 
 // Menu Models (overwrites Level Geometry IDs)
 #define MODEL_MAIN_MENU_MARIO_SAVE_BUTTON         MODEL_LEVEL_GEOMETRY_03   // main_menu_geo_0001D0
