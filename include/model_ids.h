@@ -564,6 +564,10 @@
 #define MODEL_GORE_GIB_FLESH              0xF3        // gore_gib_flesh_geo
 #define MODEL_GORE_GIB_BONE               0xF4        // gore_gib_bone_geo
 #define MODEL_GORE_BLOOD_POOL             0xF5        // gore_blood_pool_geo
+#define MODEL_PLASMA_BOLT                 0xF6        // plasma_bolt_geo
+#define MODEL_RAIL_BEAM                   0xF7        // rail_beam_geo
+#define MODEL_ROCKET_PROJECTILE           0xF8        // rocket_projectile_geo
+#define MODEL_GRENADE_PROJECTILE          0xF9        // grenade_projectile_geo
 
 // Menu Models (overwrites Level Geometry IDs)
 #define MODEL_MAIN_MENU_MARIO_SAVE_BUTTON         MODEL_LEVEL_GEOMETRY_03   // main_menu_geo_0001D0

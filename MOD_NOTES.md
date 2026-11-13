@@ -12,10 +12,12 @@ cp build/us/sm64.us.z64 "../Super Mario 64 (Zapper).z64"
 After editing weapon models: `cd actors/mario && python3 gen_weapons.py` (GUN_SCALE=2 for test-size guns).
 
 ## Controls
-X / N64 L = fire (hold for SMG & rifle), A / D = D-pad left/right = switch weapon.
+X / N64 L = fire (hold for automatic weapons), A / D = D-pad left/right = switch weapon, W / S = D-pad up/down = jump 4 weapons.
 
 ## Features
-- 6 weapons (light gun, pistol, magnum, shotgun, SMG, rifle) with projectiles that hit enemies like a punch
+- 14 weapons: light gun, pistol, magnum, shotgun, SMG, rifle, minigun (spin-up), rocket launcher, grenade launcher,
+  flamethrower, sniper, railgun, double barrel, plasma rifle; explosives do splash damage with screen shake
+- Kill counter, multi-kill announcer (DOUBLE KILL ... GODLIKE), kills heal a quarter wedge
 - Recoil, muzzle flash, slide/pump/cylinder animations, weapon draw animation, HUD weapon name
 - Aiming pose: right arm raises the gun when firing (renderer bone override)
 - Guns kill everything hostile: ordinary enemies explode into gibs + coins; bosses take several hits and

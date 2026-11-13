@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-// Mario's weapons. Fire with L, switch with D-pad left/right.
+// Mario's weapons. Fire with L, switch with D-pad left/right (up/down jumps 4).
 // Order must match the weapon list in actors/mario/gen_weapons.py.
 enum WeaponId {
     WEAPON_LIGHT_GUN,
@@ -12,12 +12,22 @@ enum WeaponId {
     WEAPON_SHOTGUN,
     WEAPON_SMG,
     WEAPON_RIFLE,
+    WEAPON_MINIGUN,
+    WEAPON_ROCKET,
+    WEAPON_GRENADE,
+    WEAPON_FLAMETHROWER,
+    WEAPON_SNIPER,
+    WEAPON_RAILGUN,
+    WEAPON_DOUBLE_BARREL,
+    WEAPON_PLASMA,
     WEAPON_COUNT
 };
 
 void weapon_update(struct MarioState *m);
 void weapon_render_hud(void);
 void bhv_weapon_shot_loop(void);
+void bhv_weapon_explosion_loop(void);
+void bhv_weapon_beam_loop(void);
 
 // geo layout callbacks (actors/mario/weapons_geo.inc.c)
 Gfx *geo_switch_weapon(s32 callContext, struct GraphNode *node, UNUSED void *context);

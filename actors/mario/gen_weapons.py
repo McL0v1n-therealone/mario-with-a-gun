@@ -29,7 +29,14 @@ COLORS = {
     'black':    (0x10, 0x10, 0x10),
     'rubber':   (0x18, 0x18, 0x18),
     'glass':    (0x20, 0x40, 0x60),
+    'olive':    (0x4A, 0x52, 0x2E),
+    'redtank':  (0xA8, 0x1C, 0x12),
+    'ceramic':  (0xD2, 0xD6, 0xDC),
+    'purple':   (0x3A, 0x26, 0x4C),
+    'glowcyan': (0x40, 0xF0, 0xFF),
+    'glowgreen': (0x70, 0xFF, 0x70),
 }
+GLOW = {'glowcyan', 'glowgreen'}
 
 # ------------------------------------------------------------------ primitives (logical frame)
 def rotz(p, a, c=(0, 0, 0)):
@@ -213,6 +220,138 @@ W.append(dict(name='rifle', body=[
         ('gunmetal', box((0, 0, 0), (12, 4, 9))),               # charging handle
     ]), muzzle=(406, 27, 0), flash=1))
 
+
+# 6: minigun - barrel cluster spins up while firing
+def barrel_cluster(x0, x1, ring_r, r, n=6):
+    parts = []
+    for k in range(n):
+        a = 2 * math.pi * k / n
+        parts += prism(x0, x1, ring_r * math.cos(a), ring_r * math.sin(a), r, 8)
+    return parts
+W.append(dict(name='minigun', body=[
+    ('gunmetal', box((25, 25, 0), (65, 25, 22))),               # receiver
+    ('black',    prism(-62, -40, 25, 0, 22, 10)),               # motor
+    ('gunmetal', box((40, 62, 0), (30, 3, 4))),                 # carry handle
+    ('gunmetal', box((15, 54, 0), (3, 6, 4))),
+    ('gunmetal', box((65, 54, 0), (3, 6, 4))),
+    ('olive',    box((30, -26, 36), (30, 24, 14))),             # ammo box
+    ('steel',    box((30, -4, 22), (22, 3, 2))),                # feed chute
+    grip((20, -32, 0), (16, 28, 11), -14, 'polymer'),
+] + trigger_group(55, 'gunmetal', 'steel'),
+    part=dict(pivot=(90, 25, 0), geom=[
+        ('steel',    barrel_cluster(90, 350, 13, 5)),
+        ('gunmetal', prism(90, 104, 25, 0, 22, 10)),            # rear clamp
+        ('gunmetal', prism(250, 262, 25, 0, 21, 10)),           # mid clamp
+        ('gunmetal', prism(336, 348, 25, 0, 21, 10)),           # front clamp
+    ]), muzzle=(352, 25, 0), flash=1, spin_part=True))
+
+# 7: rocket launcher - shoulder tube
+W.append(dict(name='rocket', body=[
+    ('olive',  prism(-130, 250, 30, 0, 26, 12)),                # tube
+    ('black',  prism(250, 272, 30, 0, 31, 12)),                 # front flare
+    ('black',  prism(-150, -130, 30, 0, 31, 12)),               # rear flare
+    ('black',  box((60, 64, -14), (26, 9, 6))),                 # sight
+    ('glass',  box((86, 64, -14), (1, 6, 4))),
+    ('olive',  box((-40, 2, 0), (30, 6, 10))),                  # shoulder pad
+    grip((40, -26, 0), (15, 26, 11), -14, 'black'),
+    grip((150, -22, 0), (12, 22, 10), 4, 'black'),              # front grip
+] + trigger_group(70, 'black', 'steel', depth=20), part=None, muzzle=(274, 30, 0), flash=1))
+
+# 8: grenade launcher - revolving drum turns after each shot
+W.append(dict(name='grenade', body=[
+    ('gunmetal', prism(90, 262, 30, 0, 16, 12)),                # barrel
+    ('black',    prism(255, 264, 30, 0, 18, 12)),
+    ('gunmetal', box((60, 56, 0), (40, 4, 6))),                 # top strap
+    ('gunmetal', box((10, 22, 0), (24, 22, 14))),               # rear frame
+    ('polymer',  box((-70, 20, 0), (50, 16, 11))),              # stock
+    ('rubber',   box((-124, 20, 0), (4, 20, 12))),
+    grip((10, -30, 0), (15, 26, 11), -18, 'polymer'),
+    grip((180, -14, 0), (11, 20, 10), 6, 'polymer'),            # front grip
+] + trigger_group(46, 'gunmetal', 'steel', depth=22),
+    part=dict(pivot=(60, 22, 0), geom=[
+        ('olive', prism(-30, 30, 0, 0, 34, 6, smooth=False)),   # drum
+        ('black', prism(30, 32, 0, 0, 10, 8)),                  # drum axle
+    ]), muzzle=(266, 30, 0), flash=1))
+
+# 9: flamethrower - fuel tank, long nozzle
+W.append(dict(name='flamethrower', body=[
+    ('redtank', prism(-30, 150, -34, 0, 22, 12)),               # fuel tank
+    ('steel',   prism(-38, -30, -34, 0, 16, 12)),
+    ('steel',   prism(150, 158, -34, 0, 16, 12)),
+    ('gunmetal', box((60, 18, 0), (70, 16, 12))),               # body
+    ('steel',   prism(130, 300, 20, 0, 9, 10)),                 # nozzle pipe
+    ('black',   prism(300, 322, 20, 0, 14, 10)),                # nozzle tip
+    ('steel',   prism(140, 300, 2, 0, 3, 6)),                   # fuel line
+    grip((40, -30, 0), (15, 26, 11), -16, 'polymer'),
+    grip((210, -6, 0), (10, 20, 9), 8, 'polymer'),
+] + trigger_group(75, 'gunmetal', 'steel', depth=22), part=None, muzzle=(324, 20, 0), flash=0))
+
+# 10: sniper rifle - long barrel, big scope, bolt cycles after each shot
+W.append(dict(name='sniper', body=[
+    ('olive',   box((60, 22, 0), (90, 16, 12))),                # receiver / stock front
+    ('olive',   box((-110, 14, 0), (70, 26, 12))),              # stock
+    ('rubber',  box((-184, 14, 0), (4, 28, 12.5))),
+    ('olive',   box((-80, 44, 0), (30, 6, 9))),                 # cheek rest
+    ('steel',   prism(150, 520, 27, 0, 7, 10)),                 # barrel
+    ('black',   prism(520, 546, 27, 0, 10, 8, smooth=False)),   # muzzle brake
+    ('black',   box((50, 46, 0), (6, 6, 6))),                   # scope mounts
+    ('black',   box((140, 46, 0), (6, 6, 6))),
+    ('black',   prism(20, 210, 64, 0, 13, 10)),                 # scope
+    ('black',   prism(210, 240, 64, 0, 18, 10)),
+    ('black',   prism(0, 20, 64, 0, 16, 10)),
+    ('glass',   prism(240, 241, 64, 0, 16, 10)),
+    ('gunmetal', box((330, 12, 7), (60, 2, 2), -4)),            # folded bipod
+    ('gunmetal', box((330, 12, -7), (60, 2, 2), -4)),
+    grip((30, -30, 0), (15, 27, 11), -20, 'olive'),
+    ('black',   box((95, -26, 0), (14, 20, 9))),                # magazine
+] + trigger_group(62, 'olive', 'steel'),
+    part=dict(pivot=(100, 30, 13), geom=[
+        ('steel', box((0, 0, 6), (6, 4, 6))),                   # bolt handle
+        ('steel', prism(-4, 4, 0, 14, 6, 8)),                   # bolt knob
+    ]), muzzle=(548, 27, 0), flash=1))
+
+# 11: railgun - ceramic body, glowing rails, coils
+W.append(dict(name='railgun', body=[
+    ('ceramic',  box((85, 22, 0), (115, 22, 16))),              # body
+    ('ceramic',  box((-70, 18, 0), (40, 18, 12))),              # stock
+    ('steel',    box((240, 38, 0), (120, 4, 6))),               # top rail
+    ('steel',    box((240, 10, 0), (120, 4, 6))),               # bottom rail
+    ('glowcyan', box((240, 24, 0), (118, 6, 3))),               # energy core
+    ('gunmetal', prism(160, 176, 24, 0, 26, 10)),               # coils
+    ('gunmetal', prism(230, 246, 24, 0, 26, 10)),
+    ('gunmetal', prism(300, 316, 24, 0, 26, 10)),
+    ('glowcyan', box((40, 50, 0), (40, 4, 8))),                 # charge display
+    grip((30, -28, 0), (15, 26, 11), -18, 'polymer'),
+] + trigger_group(62, 'gunmetal', 'steel', depth=22), part=None, muzzle=(362, 24, 0), flash=1))
+
+# 12: double barrel - side-by-side barrels break open after each shot
+W.append(dict(name='doublebarrel', body=[
+    ('blued',    box((70, 22, 0), (34, 16, 15))),               # receiver
+    ('wood',     box((-30, 18, 0), (40, 13, 11), -5)),          # wrist
+    ('wood',     box((-120, 6, 0), (55, 26, 13), -9)),          # stock
+    ('rubber',   box((-178, -2, 0), (4, 30, 14), -9)),
+    grip((20, -24, 0), (15, 24, 11), -26, 'wood'),
+] + trigger_group(60, 'blued', 'steel', depth=20),
+    part=dict(pivot=(100, 14, 0), geom=[
+        ('blued', prism(0, 300, 16, 9, 9, 10)),                 # barrels
+        ('blued', prism(0, 300, 16, -9, 9, 10)),
+        ('steel', box((150, 26, 0), (150, 2, 3))),              # rib
+        ('steel', box((296, 30, 0), (2, 2, 2))),                # bead
+        ('wood',  box((90, 2, 0), (70, 9, 14))),                # forend
+    ]), muzzle=(402, 30, 0), flash=2))
+
+# 13: plasma rifle - purple body, glowing green emitter
+W.append(dict(name='plasma', body=[
+    ('purple',    box((80, 20, 0), (100, 20, 14))),             # body
+    ('purple',    box((-50, 14, 0), (30, 14, 11))),             # stock
+    ('glowgreen', box((70, 46, 0), (40, 6, 7))),                # energy cell
+    ('gunmetal',  prism(180, 242, 20, 0, 14, 10)),              # emitter
+    ('glowgreen', prism(195, 203, 20, 0, 17, 10)),              # glow rings
+    ('glowgreen', prism(215, 223, 20, 0, 17, 10)),
+    ('glowgreen', prism(242, 244, 20, 0, 9, 10)),               # emitter face
+    grip((30, -28, 0), (15, 26, 11), -18, 'polymer'),
+] + trigger_group(62, 'purple', 'steel', depth=22), part=None, muzzle=(246, 20, 0), flash=1))
+
 # ------------------------------------------------------------------ emit helpers
 def nb(v): return int(round(max(-1, min(1, v)) * 127)) & 0xFF
 
@@ -260,7 +399,8 @@ def emit_mesh(name, tris):
 
 out = ["// Mario's weapons - generated by gen_weapons.py. Do not edit by hand.\n"]
 for c, (r, g, b) in COLORS.items():
-    out.append(f"static const Lights1 weapon_{c}_lights = gdSPDefLights1(0x{r//2:02x}, 0x{g//2:02x}, 0x{b//2:02x}, 0x{r:02x}, 0x{g:02x}, 0x{b:02x}, 0x28, 0x28, 0x28);\n")
+    ar, ag, ab = (r, g, b) if c in GLOW else (r // 2, g // 2, b // 2)
+    out.append(f"static const Lights1 weapon_{c}_lights = gdSPDefLights1(0x{ar:02x}, 0x{ag:02x}, 0x{ab:02x}, 0x{r:02x}, 0x{g:02x}, 0x{b:02x}, 0x28, 0x28, 0x28);\n")
 
 def emit_model(dlname, parts, offset=(0, 0, 0)):
     groups = {}
@@ -301,6 +441,45 @@ def diamond(L, R):  # elongated octahedron along +Z (object forward)
     return v, t
 
 v, t = diamond(40, 9);  unlit_dl("zapper_shot_dl", v, t, (255, 245, 120))   # light gun bolt
+v, t = diamond(34, 12); unlit_dl("plasma_bolt_dl", v, t, (120, 255, 140))   # plasma bolt
+v, t = diamond(60, 5);  unlit_dl("rail_beam_dl", v, t, (110, 240, 255))     # railgun beam segment
+
+def to_object_space(tris):
+    # authored along +X; swap X and Z so it points along the object's forward axis (+Z)
+    return fix_winding([[((p[2], p[1], p[0]), (n[2], n[1], n[0])) for p, n in t] for t in tris])
+
+def emit_object_model(dlname, parts):
+    groups = {}
+    for color, tris in parts:
+        groups.setdefault(color, []).extend(to_object_space(tris))
+    body = ["    gsDPPipeSync(),", "    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF),",
+            "    gsDPSetCombineMode(G_CC_SHADE, G_CC_SHADE),"]
+    for color, tris in groups.items():
+        vtx, gfx = emit_mesh(f"{dlname}_{color}", tris)
+        out.append(vtx)
+        body += [f"    gsSPLight(&weapon_{color}_lights.l, 1),", f"    gsSPLight(&weapon_{color}_lights.a, 2),"] + gfx
+    out.append(f"const Gfx {dlname}[] = {{\n" + "\n".join(body) + "\n    gsSPEndDisplayList(),\n};\n")
+
+fin = lambda a: ('black', box((-22 + 4, 0, 0), (8, 1.5, 12), 0)) if a == 0 else ('black', box((-22 + 4, 0, 0), (8, 12, 1.5), 0))
+emit_object_model("rocket_projectile_dl", [
+    ('olive',  prism(-26, 22, 0, 0, 6, 8)),
+    ('redtank', prism(22, 36, 0, 0, 6, 8, r1=0.5)),
+    ('black',  prism(-30, -26, 0, 0, 4.5, 8)),
+    fin(0), fin(1),
+])
+def ball(r, color, lat=4, lon=8):
+    tris = []
+    for i in range(lat):
+        for j in range(lon):
+            def P(a, b):
+                th = math.pi * a / lat; ph = 2 * math.pi * b / lon
+                u = (math.cos(th), math.sin(th) * math.cos(ph), math.sin(th) * math.sin(ph))
+                return (tuple(r * c for c in u), u)
+            A, B, C, D = P(i, j), P(i, j + 1), P(i + 1, j), P(i + 1, j + 1)
+            if i != 0: tris.append([A, C, B])
+            if i != lat - 1: tris.append([B, C, D])
+    return (color, tris)
+emit_object_model("grenade_projectile_dl", [ball(10, 'olive'), ('black', prism(-3, 3, 0, 0, 10.5, 8))])
 v, t = diamond(28, 3);  unlit_dl("bullet_tracer_dl", v, t, (255, 200, 70))   # bullet tracer
 
 # muzzle flash: two crossed star shapes pointing along fist +X (in fist frame, already flipped)
@@ -358,7 +537,9 @@ for layer_name, layer in (('opaque', 'LAYER_OPAQUE'), ('transparent', 'LAYER_TRA
     g += ["            GEO_CLOSE_NODE(),", "        GEO_CLOSE_NODE(),", "    GEO_CLOSE_NODE(),", "    GEO_RETURN(),", "};\n"]
     geo += g
 
-for name, dl in (('zapper_shot_geo', 'zapper_shot_dl'), ('bullet_tracer_geo', 'bullet_tracer_dl')):
+for name, dl in (('zapper_shot_geo', 'zapper_shot_dl'), ('bullet_tracer_geo', 'bullet_tracer_dl'),
+                 ('plasma_bolt_geo', 'plasma_bolt_dl'), ('rail_beam_geo', 'rail_beam_dl'),
+                 ('rocket_projectile_geo', 'rocket_projectile_dl'), ('grenade_projectile_geo', 'grenade_projectile_dl')):
     geo += [f"const GeoLayout {name}[] = {{", "    GEO_CULLING_RADIUS(100),", "    GEO_OPEN_NODE(),",
             f"        GEO_DISPLAY_LIST(LAYER_OPAQUE, {dl}),", "    GEO_CLOSE_NODE(),", "    GEO_END(),", "};\n"]
 
@@ -368,6 +549,9 @@ open(os.path.join(HERE, 'weapons_geo.inc.c'), 'w').write("\n".join(geo))
 externs = [f"extern const Gfx mario_weapon_{w['name']}[];" for w in W]
 externs += [f"extern const Gfx mario_weapon_{w['name']}_part[];" for w in W if w['part']]
 externs += ["extern const Gfx mario_weapon_flash[];", "extern const Gfx zapper_shot_dl[];", "extern const Gfx bullet_tracer_dl[];",
+            "extern const Gfx plasma_bolt_dl[];", "extern const Gfx rail_beam_dl[];", "extern const Gfx rocket_projectile_dl[];",
+            "extern const Gfx grenade_projectile_dl[];", "extern const GeoLayout plasma_bolt_geo[];", "extern const GeoLayout rail_beam_geo[];",
+            "extern const GeoLayout rocket_projectile_geo[];", "extern const GeoLayout grenade_projectile_geo[];",
             "extern const GeoLayout mario_weapon_geo_opaque[];", "extern const GeoLayout mario_weapon_geo_transparent[];",
             "extern const GeoLayout zapper_shot_geo[];", "extern const GeoLayout bullet_tracer_geo[];"]
 open(os.path.join(HERE, 'weapons_externs.h'), 'w').write("// generated by gen_weapons.py\n" + "\n".join(externs) + "\n")

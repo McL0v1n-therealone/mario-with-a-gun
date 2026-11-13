@@ -6144,3 +6144,34 @@ const BehaviorScript bhvGoreBloodPool[] = {
         CALL_NATIVE(bhv_gore_blood_pool_loop),
     END_LOOP(),
 };
+
+// Flame jets (same projectile logic, drawn as billboards)
+const BehaviorScript bhvWeaponFlame[] = {
+    BEGIN(OBJ_LIST_DEFAULT),
+    OR_INT(oFlags, OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE),
+    BILLBOARD(),
+    BEGIN_LOOP(),
+        CALL_NATIVE(bhv_weapon_shot_loop),
+    END_LOOP(),
+};
+
+// Rocket / grenade / plasma explosion visual (damage is applied in weapons.c, never to Mario)
+const BehaviorScript bhvWeaponExplosion[] = {
+    BEGIN(OBJ_LIST_UNIMPORTANT),
+    OR_INT(oFlags, OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE),
+    BILLBOARD(),
+    SET_INT(oAnimState, -1),
+    BEGIN_LOOP(),
+        CALL_NATIVE(bhv_weapon_explosion_loop),
+        ADD_INT(oAnimState, 1),
+    END_LOOP(),
+};
+
+// Railgun beam segment, fades out over a few frames
+const BehaviorScript bhvWeaponBeam[] = {
+    BEGIN(OBJ_LIST_UNIMPORTANT),
+    OR_INT(oFlags, OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE),
+    BEGIN_LOOP(),
+        CALL_NATIVE(bhv_weapon_beam_loop),
+    END_LOOP(),
+};
