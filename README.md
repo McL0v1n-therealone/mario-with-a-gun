@@ -1,3 +1,16 @@
+# Mario with a gun
+
+A Super Mario 64 mod built on the [n64decomp/sm64](https://github.com/n64decomp/sm64) decompilation:
+15 weapons with recoil and animations, gore, desert troopers on an original desert map (the Outpost),
+a jetpack, kill streaks and an N64-era look for all the new models. See [MOD_NOTES.md](MOD_NOTES.md)
+for controls, features and where everything lives.
+
+**No ROM is included.** You need your own copy of Super Mario 64 (USA) - place it as
+`baserom.us.z64` and run `make VERSION=us COMPARE=0`. The mod uses the 8MB Expansion Pak memory
+layout, so enable the Expansion Pak in your emulator.
+
+---
+
 # Super Mario 64
 
 - This repo contains a full decompilation of Super Mario 64 of the following releases: Japan (jp), North America (us), Europe (eu), Shindou (sh) and iQue Player (cn).
