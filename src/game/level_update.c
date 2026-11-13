@@ -1182,7 +1182,8 @@ s32 init_level(void) {
                 set_mario_action(gMarioState, ACT_IDLE, 0);
             } else if (!gDebugLevelSelect) {
                 if (gMarioState->action != ACT_UNINITIALIZED) {
-                    if (save_file_exists(gCurrSaveFileNum - 1)) {
+                    // Skip the opening cutscene (Peach's letter + Lakitu flyover) on new files too.
+                    if (TRUE || save_file_exists(gCurrSaveFileNum - 1)) {
                         set_mario_action(gMarioState, ACT_IDLE, 0);
                     } else {
                         set_mario_action(gMarioState, ACT_INTRO_CUTSCENE, 0);
